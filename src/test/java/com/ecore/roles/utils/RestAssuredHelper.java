@@ -11,6 +11,7 @@ import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import io.restassured.specification.RequestSpecification;
 import org.hamcrest.Matchers;
+import org.modelmapper.ModelMapper;
 
 import java.util.UUID;
 
@@ -19,6 +20,8 @@ import static io.restassured.RestAssured.when;
 import static io.restassured.http.ContentType.JSON;
 
 public class RestAssuredHelper {
+
+    private static final ModelMapper modelMapper = new ModelMapper();
 
     public static void setUp(int port) {
         RestAssured.reset();
@@ -31,7 +34,7 @@ public class RestAssuredHelper {
     }
 
     public static EcoreValidatableResponse createRole(Role role) {
-        return sendRequest(givenNullableBody(RoleDto.fromModel(role))
+        return sendRequest(givenNullableBody(role != null ? modelMapper.map(role, RoleDto.class) : null)
                 .contentType(JSON)
                 .when()
                 .post("/v1/roles")
@@ -62,11 +65,12 @@ public class RestAssuredHelper {
     }
 
     public static EcoreValidatableResponse createMembership(Membership membership) {
-        return sendRequest(givenNullableBody(MembershipDto.fromModel(membership))
-                .contentType(JSON)
-                .when()
-                .post("/v1/roles/memberships")
-                .then());
+        return sendRequest(givenNullableBody(
+                membership != null ? modelMapper.map(membership, MembershipDto.class) : null)
+                        .contentType(JSON)
+                        .when()
+                        .post("/v1/roles/memberships")
+                        .then());
     }
 
     public static EcoreValidatableResponse getMemberships(UUID roleId) {

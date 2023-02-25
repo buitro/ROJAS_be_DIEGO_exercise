@@ -5,15 +5,16 @@ import com.ecore.roles.service.MembershipsService;
 import com.ecore.roles.web.MembershipsApi;
 import com.ecore.roles.web.dto.MembershipDto;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import static com.ecore.roles.web.dto.MembershipDto.fromModel;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @RestController
@@ -21,6 +22,7 @@ import static com.ecore.roles.web.dto.MembershipDto.fromModel;
 public class MembershipsRestController implements MembershipsApi {
 
     private final MembershipsService membershipsService;
+    private final ModelMapper modelMapper;
 
     @Override
     @PostMapping(
@@ -28,14 +30,15 @@ public class MembershipsRestController implements MembershipsApi {
             produces = {"application/json"})
     public ResponseEntity<MembershipDto> assignRoleToMembership(
             @NotNull @Valid @RequestBody MembershipDto membershipDto) {
-        Membership membership = membershipsService.assignRoleToMembership(membershipDto.toModel());
+        Membership membership =
+                membershipsService.assignRoleToMembership(modelMapper.map(membershipDto, Membership.class));
         return ResponseEntity
-                .status(200)
-                .body(fromModel(membership));
+                .status(HttpStatus.CREATED)
+                .body(modelMapper.map(membership, MembershipDto.class));
     }
 
     @Override
-    @PostMapping(
+    @GetMapping(
             path = "/search",
             produces = {"application/json"})
     public ResponseEntity<List<MembershipDto>> getMemberships(
@@ -43,15 +46,11 @@ public class MembershipsRestController implements MembershipsApi {
 
         List<Membership> memberships = membershipsService.getMemberships(roleId);
 
-        List<MembershipDto> newMembershipDto = new ArrayList<>();
-
-        for (Membership membership : memberships) {
-            MembershipDto membershipDto = fromModel(membership);
-            newMembershipDto.add(membershipDto);
-        }
+        List<MembershipDto> newMembershipDto = memberships.stream()
+                .map(m -> modelMapper.map(m, MembershipDto.class)).collect(Collectors.toList());
 
         return ResponseEntity
-                .status(200)
+                .status(HttpStatus.OK)
                 .body(newMembershipDto);
     }
 
